@@ -1,61 +1,66 @@
-*Concepts you may want to Google beforehand: VGA character cells, screen offset*
+**Goal: Update our build system to El Capitan**
 
-**Goal: Write strings on the screen**
+If you were following this guide from the beginning and upgraded to El Capitan only
+to find that Makefiles don't compile anymore, follow these instructions to upgrade
+your cross-compiler.
 
-Finally, we are going to be able to output text on the screen. This lesson contains
-a bit more code than usual, so let's go step by step.
+Otherwise, move on to the next lesson
 
-Open `drivers/screen.h` and you'll see that we have defined some constants for the VGA
-card driver and three public functions, one to clear the screen and another couple
-to write strings, the famously named `kprint` for "kernel print"
+Upgrading the cross-compiler
+----------------------------
 
-Now open `drivers/screen.c`. It starts with the declaration of private helper functions
-that we will use to aid our `kprint` kernel API.
+We will follow the same instructions as in lesson 11, more or less.
 
-There are the two I/O port access routines that we learned in the previous lesson,
-`get` and `set_cursor_offset()`.
+First, run `brew upgrade` and you will get your gcc upgraded to version 5.0 (at the time this guide was written)
 
-Then there is the routine that directly manipulates the video memory, `print_char()`
+Then run `xcode-select --install` to update OSX commandline tools
 
-Finally, there are three small helper functions to transform rows and columns into offsets
-and vice versa.
+Once installed, find where your packaged gcc is (remember, not clang) and export it. For example:
 
+```
+export CC=/usr/local/bin/gcc-5
+export LD=/usr/local/bin/gcc-5
+```
 
-kprint_at
----------
+We will need to recompile binutils and our cross-compiled gcc. Export the targets and prefix:
 
-`kprint_at` may be called with a `-1` value for `col` and `row`, which indicates that
-we will print the string at the current cursor position.
+```
+export PREFIX="/usr/local/i386elfgcc"
+export TARGET=i386-elf
+export PATH="$PREFIX/bin:$PATH"
+```
 
-It first sets three variables for the col/row and the offset. Then it iterates through
-the `char*` and calls `print_char()` with the current coordinates.
-
-Note that `print_char` itself returns the offset of the next cursor position, and we reuse
-it for the next loop.
-
-`kprint` is basically a wrapper for `kprint_at`
-
-
-
-print_char
-----------
-
-Like `kprint_at`, `print_char` allows cols/rows to be `-1`. In that case it retrieves
-the cursor position from the hardware, using the `ports.c` routines.
-
-`print_char` also handles newlines. In that case, we will position the cursor offset
-to column 0 of the next row. 
-
-Remember that the VGA cells take two bytes, one for the character itself and another one
-for the attribute.
-
-
-kernel.c
+binutils
 --------
 
-Our new kernel is finally able to print strings.
+Remember: always be careful before pasting walls of text from the internet. I recommend copying line by line.
 
-It tests correct character positioning, spanning through multiple lines, line breaks,
-and finally it tries to write outside of the screen bounds. What happens then?
+```sh
+mkdir /tmp/src
+cd /tmp/src
+curl -O http://ftp.gnu.org/gnu/binutils/binutils-2.24.tar.gz # If the link 404's, look for a more recent version
+tar xf binutils-2.24.tar.gz
+mkdir binutils-build
+cd binutils-build
+../binutils-2.24/configure --target=$TARGET --enable-interwork --enable-multilib --disable-nls --disable-werror --prefix=$PREFIX 2>&1 | tee configure.log
+make all install 2>&1 | tee make.log
+```
 
-In the next lesson we will learn how to scroll the screen.
+
+gcc
+---
+```sh
+cd /tmp/src
+curl -O http://mirror.bbln.org/gcc/releases/gcc-4.9.1/gcc-4.9.1.tar.bz2
+tar xf gcc-4.9.1.tar.bz2
+mkdir gcc-build
+cd gcc-build
+../gcc-4.9.1/configure --target=$TARGET --prefix="$PREFIX" --disable-nls --disable-libssp --enable-languages=c --without-headers
+make all-gcc 
+make all-target-libgcc 
+make install-gcc 
+make install-target-libgcc 
+```
+
+
+Now try to type `make` on this lesson's folder and check that everything compiles smoothly

@@ -1,12 +1,12 @@
-C_SOURCES = $(wildcard kernel/*.c drivers/*.c)
-HEADERS = $(wildcard kernel/*.h drivers/*.h)
-OBJ = ${C_SOURCES:.c=.o}
+C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c libc/*.c)
+HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h libc/*.h)
+OBJ = ${C_SOURCES:.c=.o cpu/interrupt.o} 
 
 CC = i686-elf-gcc
 GDB = i686-elf-gdb
 
 # -g: Use debugging symbols in gcc
-CFLAGS = -g
+CFLAGS = -g -ffreestanding -Wall -Wextra -fno-exceptions -m32
 
 # First rule is run by default
 os-image.bin: boot/bootsect.bin kernel.bin
@@ -26,13 +26,13 @@ run: os-image.bin
 
 # Open the connection to qemu and load our kernel-object file with symbols
 debug: os-image.bin kernel.elf
-	qemu-system-x86_64 -s -fda os-image.bin &
+	qemu-system-x86_64 -s -fda os-image.bin -d guest_errors,int &
 	${GDB} -ex "target remote localhost:1234" -ex "symbol-file kernel.elf"
 
 # Generic rules for wildcards
 # To make an object, always compile from its .c
 %.o: %.c ${HEADERS}
-	${CC} ${CFLAGS} -ffreestanding -c $< -o $@
+	${CC} ${CFLAGS} -c $< -o $@
 
 %.o: %.asm
 	nasm $< -f elf -o $@
@@ -42,4 +42,4 @@ debug: os-image.bin kernel.elf
 
 clean:
 	rm -rf *.bin *.dis *.o os-image.bin *.elf
-	rm -rf kernel/*.o boot/*.bin drivers/*.o boot/*.o
+	rm -rf kernel/*.o boot/*.bin drivers/*.o boot/*.o cpu/*.o libc/*.o
