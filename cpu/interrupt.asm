@@ -1,38 +1,33 @@
-; Defined in isr.c
+; Common ISR and IRQ stubs for x86 protected mode
 [extern isr_handler]
 [extern irq_handler]
 
-; Common ISR code
+; Common ISR code: saves state, calls C handler, restores state
 isr_common_stub:
-    ; 1. Save CPU state
-	pusha ; Pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
-	mov ax, ds ; Lower 16-bits of eax = ds.
-	push eax ; save the data segment descriptor
-	mov ax, 0x10  ; kernel data segment descriptor
+	pusha
+	mov ax, ds
+	push eax
+	mov ax, 0x10
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-	push esp ; registers_t *r
-    ; 2. Call C handler
-    cld ; C code following the sysV ABI requires DF to be clear on function entry
+	push esp
+    cld
 	call isr_handler
-	
-    ; 3. Restore state
-	pop eax 
+	pop eax
     pop eax
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
 	popa
-	add esp, 8 ; Cleans up the pushed error code and pushed ISR number
-	iret ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
+	add esp, 8
+	iret
 
-; Common IRQ code. Identical to ISR code except for the 'call' 
-; and the 'pop ebx'
+; Common IRQ code: saves state, calls C handler, restores state
 irq_common_stub:
-    pusha 
+    pusha
     mov ax, ds
     push eax
     mov ax, 0x10
@@ -42,8 +37,8 @@ irq_common_stub:
     mov gs, ax
     push esp
     cld
-    call irq_handler ; Different than the ISR code
-    pop ebx  ; Different than the ISR code
+    call irq_handler
+    pop ebx
     pop ebx
     mov ds, bx
     mov es, bx
@@ -51,16 +46,9 @@ irq_common_stub:
     mov gs, bx
     popa
     add esp, 8
-    iret 
-	
-; We don't get information about which interrupt was caller
-; when the handler is run, so we will need to have a different handler
-; for every interrupt.
-; Furthermore, some interrupts push an error code onto the stack but others
-; don't, so we will push a dummy error code for those which don't, so that
-; we have a consistent stack for all of them.
+    iret
 
-; First make the ISRs global
+; ISR and IRQ entry points for CPU exceptions and hardware interrupts
 global isr0
 global isr1
 global isr2

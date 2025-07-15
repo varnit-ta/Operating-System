@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 /**
- * K&R implementation
+ * Convert integer to ASCII string (K&R implementation)
  */
 void int_to_ascii(int n, char str[]) {
     int i, sign;
@@ -18,6 +18,9 @@ void int_to_ascii(int n, char str[]) {
     reverse(str);
 }
 
+/**
+ * Convert integer to hexadecimal ASCII string
+ */
 void hex_to_ascii(int n, char str[]) {
     append(str, '0');
     append(str, 'x');
@@ -38,7 +41,9 @@ void hex_to_ascii(int n, char str[]) {
     else append(str, tmp + '0');
 }
 
-/* K&R */
+/**
+ * Reverse a string in place (K&R implementation)
+ */
 void reverse(char s[]) {
     int c, i, j;
     for (i = 0, j = strlen(s)-1; i < j; i++, j--) {
@@ -48,26 +53,36 @@ void reverse(char s[]) {
     }
 }
 
-/* K&R */
+/**
+ * Get the length of a string (K&R implementation)
+ */
 int strlen(char s[]) {
     int i = 0;
     while (s[i] != '\0') ++i;
     return i;
 }
 
+/**
+ * Append a character to the end of a string
+ */
 void append(char s[], char n) {
     int len = strlen(s);
     s[len] = n;
     s[len+1] = '\0';
 }
 
+/**
+ * Remove the last character from a string
+ */
 void backspace(char s[]) {
     int len = strlen(s);
     s[len-1] = '\0';
 }
 
-/* K&R 
- * Returns <0 if s1<s2, 0 if s1==s2, >0 if s1>s2 */
+/**
+ * Compare two strings (K&R implementation)
+ * Returns <0 if s1<s2, 0 if s1==s2, >0 if s1>s2
+ */
 int strcmp(char s1[], char s2[]) {
     int i;
     for (i = 0; s1[i] == s2[i]; i++) {

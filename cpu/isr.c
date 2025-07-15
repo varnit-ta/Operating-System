@@ -8,8 +8,9 @@
 
 isr_t interrupt_handlers[256];
 
-/* Can't do this with a loop because we need the address
- * of the function names */
+/**
+ * Install ISRs and IRQs into the IDT and remap the PIC.
+ */
 void isr_install() {
     set_idt_gate(0, (uint32_t)isr0);
     set_idt_gate(1, (uint32_t)isr1);
@@ -44,7 +45,6 @@ void isr_install() {
     set_idt_gate(30, (uint32_t)isr30);
     set_idt_gate(31, (uint32_t)isr31);
 
-    // Remap the PIC
     port_byte_out(0x20, 0x11);
     port_byte_out(0xA0, 0x11);
     port_byte_out(0x21, 0x20);
@@ -54,9 +54,8 @@ void isr_install() {
     port_byte_out(0x21, 0x01);
     port_byte_out(0xA1, 0x01);
     port_byte_out(0x21, 0x0);
-    port_byte_out(0xA1, 0x0); 
+    port_byte_out(0xA1, 0x0);
 
-    // Install the IRQs
     set_idt_gate(32, (uint32_t)irq0);
     set_idt_gate(33, (uint32_t)irq1);
     set_idt_gate(34, (uint32_t)irq2);
@@ -74,10 +73,12 @@ void isr_install() {
     set_idt_gate(46, (uint32_t)irq14);
     set_idt_gate(47, (uint32_t)irq15);
 
-    set_idt(); // Load with ASM
+    set_idt();
 }
 
-/* To print the message which defines every exception */
+/**
+ * Exception messages for each interrupt number.
+ */
 char *exception_messages[] = {
     "Division By Zero",
     "Debug",
@@ -87,7 +88,6 @@ char *exception_messages[] = {
     "Out of Bounds",
     "Invalid Opcode",
     "No Coprocessor",
-
     "Double Fault",
     "Coprocessor Segment Overrun",
     "Bad TSS",
@@ -96,7 +96,6 @@ char *exception_messages[] = {
     "General Protection Fault",
     "Page Fault",
     "Unknown Interrupt",
-
     "Coprocessor Fault",
     "Alignment Check",
     "Machine Check",
@@ -105,7 +104,7 @@ char *exception_messages[] = {
     "Reserved",
     "Reserved",
     "Reserved",
-
+    "Reserved",
     "Reserved",
     "Reserved",
     "Reserved",
@@ -116,6 +115,9 @@ char *exception_messages[] = {
     "Reserved"
 };
 
+/**
+ * Default ISR handler. Prints the interrupt number and message.
+ */
 void isr_handler(registers_t *r) {
     kprint("received interrupt: ");
     char s[3];
@@ -126,28 +128,31 @@ void isr_handler(registers_t *r) {
     kprint("\n");
 }
 
+/**
+ * Register a custom interrupt handler for a given interrupt number.
+ */
 void register_interrupt_handler(uint8_t n, isr_t handler) {
     interrupt_handlers[n] = handler;
 }
 
+/**
+ * Default IRQ handler. Sends EOI to PIC and calls registered handler if present.
+ */
 void irq_handler(registers_t *r) {
-    /* After every interrupt we need to send an EOI to the PICs
-     * or they will not send another interrupt again */
-    if (r->int_no >= 40) port_byte_out(0xA0, 0x20); /* slave */
-    port_byte_out(0x20, 0x20); /* master */
+    if (r->int_no >= 40) port_byte_out(0xA0, 0x20);
+    port_byte_out(0x20, 0x20);
 
-    /* Handle the interrupt in a more modular way */
     if (interrupt_handlers[r->int_no] != 0) {
         isr_t handler = interrupt_handlers[r->int_no];
         handler(r);
     }
 }
 
+/**
+ * Install IRQs and enable hardware interrupts.
+ */
 void irq_install() {
-    /* Enable interruptions */
     asm volatile("sti");
-    /* IRQ0: timer */
     init_timer(50);
-    /* IRQ1: keyboard */
     init_keyboard();
 }

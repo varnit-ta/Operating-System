@@ -15,6 +15,8 @@ typedef struct {
     uint16_t high_offset;
 } __attribute__((packed)) idt_gate_t;
 
+
+
 /* IDT Register Structure */
 typedef struct {
     uint16_t limit;

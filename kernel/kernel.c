@@ -5,6 +5,9 @@
 #include "../libc/mem.h"
 #include <stdint.h>
 
+/**
+ * Main entry point for the kernel. Installs ISRs and IRQs, then prints a prompt.
+ */
 void kernel_main() {
     isr_install();
     irq_install();
@@ -16,12 +19,14 @@ void kernel_main() {
         "Type END to halt the CPU or PAGE to request a kmalloc()\n> ");
 }
 
+/**
+ * Handles user input from the keyboard. Recognizes END and PAGE commands.
+ */
 void user_input(char *input) {
     if (strcmp(input, "END") == 0) {
         kprint("Stopping the CPU. Bye!\n");
         asm volatile("hlt");
     } else if (strcmp(input, "PAGE") == 0) {
-        /* Lesson 22: Code to test kmalloc, the rest is unchanged */
         uint32_t phys_addr;
         uint32_t page = kmalloc(1000, 1, &phys_addr);
         char page_str[16] = "";

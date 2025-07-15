@@ -25,8 +25,10 @@ const char sc_ascii[] = { '?', '?', '1', '2', '3', '4', '5', '6',
         'H', 'J', 'K', 'L', ';', '\'', '`', '?', '\\', 'Z', 'X', 'C', 'V', 
         'B', 'N', 'M', ',', '.', '/', '?', '?', '?', ' '};
 
+/**
+ * Keyboard interrupt callback. Handles key presses and updates the key buffer.
+ */
 static void keyboard_callback(registers_t *regs) {
-    /* The PIC leaves us the scancode in port 0x60 */
     uint8_t scancode = port_byte_in(0x60);
     
     if (scancode > SC_MAX) return;
@@ -35,11 +37,10 @@ static void keyboard_callback(registers_t *regs) {
         kprint_backspace();
     } else if (scancode == ENTER) {
         kprint("\n");
-        user_input(key_buffer); /* kernel-controlled function */
+        user_input(key_buffer);
         key_buffer[0] = '\0';
     } else {
         char letter = sc_ascii[(int)scancode];
-        /* Remember that kprint only accepts char[] */
         char str[2] = {letter, '\0'};
         append(key_buffer, letter);
         kprint(str);
@@ -47,6 +48,9 @@ static void keyboard_callback(registers_t *regs) {
     UNUSED(regs);
 }
 
+/**
+ * Initialize the keyboard by registering the interrupt handler.
+ */
 void init_keyboard() {
    register_interrupt_handler(IRQ1, keyboard_callback); 
 }
